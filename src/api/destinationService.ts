@@ -1,4 +1,3 @@
-
 // This file provides functions to fetch destination data
 import { Destination } from "@/components/dashboard/DestinationCard";
 
@@ -81,7 +80,7 @@ const sampleDestinations: Destination[] = [
 // Destination images for dynamically generated destinations
 const destinationImages = [
   "https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=1470&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1473&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1502602898034-b723cf961d3e?q=80&w=1473&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1490959231512-65fba63aa0c1?q=80&w=1470&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1506929562872-bb421503ef21?q=80&w=1368&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1454391304352-2bf4678b1a7a?q=80&w=1374&auto=format&fit=crop",
@@ -137,6 +136,10 @@ export const searchDestinations = async (query: string): Promise<Destination[]> 
   // Simulating API call delay
   await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 700));
   
+  if (!query || query.trim() === '') {
+    return [];
+  }
+  
   // First, check if the query matches any of our sample destinations
   const filteredDestinations = sampleDestinations.filter((dest) =>
     dest.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -149,7 +152,6 @@ export const searchDestinations = async (query: string): Promise<Destination[]> 
   }
   
   // If not found in sample data, generate a new destination based on the search query
-  // In a real app, this would be an API call to a service like Google Places API
   
   // Format the destination name properly (capitalize first letter of each word)
   const formattedName = query.split(' ')

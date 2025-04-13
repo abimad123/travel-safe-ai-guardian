@@ -1,6 +1,5 @@
-
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { searchDestinations } from "@/api/destinationService";
 import { Destination } from "@/components/dashboard/DestinationCard";
 import DestinationCard from "@/components/dashboard/DestinationCard";
@@ -12,6 +11,7 @@ import { Input } from "@/components/ui/input";
 
 const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const query = searchParams.get("q") || "";
   const [searchQuery, setSearchQuery] = useState(query);
   const [results, setResults] = useState<Destination[]>([]);
@@ -49,6 +49,16 @@ const SearchResults = () => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     setSearchParams({ q: searchQuery });
+  };
+
+  const handleCardClick = (destination: Destination) => {
+    // When clicking on a search-generated destination, pass the search query
+    if (destination.id.startsWith('search-')) {
+      navigate(`/destination/${destination.id}?q=${encodeURIComponent(query)}`);
+    } else {
+      // For regular destinations, keep the normal behavior
+      navigate(`/destination/${destination.id}`);
+    }
   };
 
   return (
@@ -89,11 +99,12 @@ const SearchResults = () => {
       ) : results.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {results.map((destination) => (
-            <DestinationCard 
-              key={destination.id} 
-              destination={destination} 
-              searchQuery={query}
-            />
+            <div key={destination.id} onClick={() => handleCardClick(destination)} className="cursor-pointer">
+              <DestinationCard 
+                destination={destination} 
+                searchQuery={query}
+              />
+            </div>
           ))}
         </div>
       ) : (

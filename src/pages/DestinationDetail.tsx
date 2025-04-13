@@ -1,6 +1,5 @@
-
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { ArrowLeft, MapPin, Shield, AlertTriangle, Info, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,6 +49,7 @@ interface WeatherData {
 
 const DestinationDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [destination, setDestination] = useState<Destination | null>(null);
   const [loading, setLoading] = useState(true);
   const [safetyInfo, setSafetyInfo] = useState<SafetyInfo | null>(null);
@@ -67,22 +67,35 @@ const DestinationDetail = () => {
         
         // Check if this is a search-generated ID or a regular ID
         if (id.startsWith('search-')) {
-          // This is a dynamically generated destination from search
-          // We need to extract the search query from the URL or localStorage
-          const searchParams = new URLSearchParams(window.location.search);
-          const query = searchParams.get('from') || '';
+          // For search-generated destinations, we need to retrieve the search query
+          // Try to get it from the URL search params first
+          const searchParams = new URLSearchParams(location.search);
+          const query = searchParams.get('q') || '';
           
           if (query) {
             // Re-fetch the destination data based on the search query
             const results = await searchDestinations(query);
             if (results.length > 0) {
+              // Use the first result
               destData = results[0];
             }
-          }
-          
-          // If we couldn't get it from the URL, try to use the current destination name
-          if (!destData && destination) {
-            destData = destination;
+          } else {
+            // If query parameter is not in URL, try to get the location name from the path
+            // This is a fallback method
+            const pathSegments = location.pathname.split('/');
+            const lastSegment = pathSegments[pathSegments.length - 1];
+            
+            if (lastSegment && lastSegment.startsWith('search-')) {
+              // Try searching with just any query to generate a destination
+              // This is our final fallback
+              const searchQuery = new URLSearchParams(window.location.search).get('from') || '';
+              if (searchQuery) {
+                const results = await searchDestinations(searchQuery);
+                if (results.length > 0) {
+                  destData = results[0];
+                }
+              }
+            }
           }
         } else {
           // Regular destination ID
@@ -127,7 +140,7 @@ const DestinationDetail = () => {
     };
 
     loadDestination();
-  }, [id]);
+  }, [id, location]);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
