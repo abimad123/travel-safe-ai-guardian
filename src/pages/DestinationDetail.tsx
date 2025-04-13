@@ -40,6 +40,7 @@ interface WeatherData {
     temperature: number;
     humidity: number;
     wind: number;
+    icon: string;
   };
   forecast: {
     day: string;
@@ -65,29 +66,20 @@ const DestinationDetail = () => {
         
         let destData: Destination | null = null;
         
-        // Check if this is a search-generated ID or a regular ID
         if (id.startsWith('search-')) {
-          // For search-generated destinations, we need to retrieve the search query
-          // Try to get it from the URL search params first
           const searchParams = new URLSearchParams(location.search);
           const query = searchParams.get('q') || '';
           
           if (query) {
-            // Re-fetch the destination data based on the search query
             const results = await searchDestinations(query);
             if (results.length > 0) {
-              // Use the first result
               destData = results[0];
             }
           } else {
-            // If query parameter is not in URL, try to get the location name from the path
-            // This is a fallback method
             const pathSegments = location.pathname.split('/');
             const lastSegment = pathSegments[pathSegments.length - 1];
             
             if (lastSegment && lastSegment.startsWith('search-')) {
-              // Try searching with just any query to generate a destination
-              // This is our final fallback
               const searchQuery = new URLSearchParams(window.location.search).get('from') || '';
               if (searchQuery) {
                 const results = await searchDestinations(searchQuery);
@@ -98,7 +90,6 @@ const DestinationDetail = () => {
             }
           }
         } else {
-          // Regular destination ID
           destData = await fetchDestinationById(id);
         }
         
@@ -109,7 +100,6 @@ const DestinationDetail = () => {
         
         setDestination(destData);
         
-        // Generate safety data for this destination
         setSafetyInfo({
           crime: Math.floor(Math.random() * 3) + 7,
           health: Math.floor(Math.random() * 3) + 7,
@@ -117,10 +107,8 @@ const DestinationDetail = () => {
           overall: destData.safetyScore,
         });
         
-        // Fetch real-time data for this destination
-        const locationName = destData.name.split(',')[0]; // Get just the city name
+        const locationName = destData.name.split(',')[0];
         
-        // Fetch alerts, weather, and travel tips in parallel
         const [alertsData, weatherData, tipsData] = await Promise.all([
           fetchSafetyAlerts(locationName),
           fetchWeatherData(locationName),
@@ -161,8 +149,18 @@ const DestinationDetail = () => {
     return "text-red-600";
   };
   
-  const getWeatherIcon = (condition: string) => {
+  const getWeatherIcon = (condition: string, iconCode?: string) => {
+    if (iconCode) {
+      return (
+        <img 
+          src={`https://openweathermap.org/img/wn/${iconCode}@2x.png`} 
+          alt={condition}
+          className="w-16 h-16"
+        );
+      }
+    
     switch (condition.toLowerCase()) {
+      case "clear":
       case "sunny":
         return (
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-500">
@@ -178,6 +176,8 @@ const DestinationDetail = () => {
           </svg>
         );
       case "partly cloudy":
+      case "few clouds":
+      case "scattered clouds":
         return (
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
             <path d="M12 2v2" />
@@ -197,12 +197,18 @@ const DestinationDetail = () => {
           </svg>
         );
       case "cloudy":
+      case "broken clouds":
+      case "overcast clouds":
         return (
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
             <path d="M17.5 21H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
           </svg>
         );
       case "rainy":
+      case "rain":
+      case "light rain":
+      case "moderate rain":
+      case "shower rain":
         return (
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
             <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
@@ -212,6 +218,7 @@ const DestinationDetail = () => {
           </svg>
         );
       case "stormy":
+      case "thunderstorm":
         return (
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-600">
             <path d="M17.5 21H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
@@ -219,6 +226,29 @@ const DestinationDetail = () => {
             <path d="m13.9 12.1-1.4 1.4" />
             <path d="m16.2 16.9-1.4-1.4" />
             <path d="m7.4 11.6 1.4 1.4" />
+          </svg>
+        );
+      case "mist":
+      case "fog":
+      case "haze":
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+            <path d="M3 10h18" />
+            <path d="M5 15h14" />
+            <path d="M7 20h10" />
+            <path d="M3 5h18" />
+          </svg>
+        );
+      case "snow":
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-200">
+            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+            <path d="M8 15h.01" />
+            <path d="M8 19h.01" />
+            <path d="M12 17h.01" />
+            <path d="M12 21h.01" />
+            <path d="M16 15h.01" />
+            <path d="M16 19h.01" />
           </svg>
         );
       default:
@@ -260,7 +290,6 @@ const DestinationDetail = () => {
         </Link>
       </Button>
 
-      {/* Hero Section */}
       <div className="relative h-[300px] md:h-[400px] rounded-xl overflow-hidden mb-6">
         <img
           src={destination.image}
@@ -280,7 +309,6 @@ const DestinationDetail = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardContent className="p-6">
@@ -369,7 +397,6 @@ const DestinationDetail = () => {
           </Card>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-6">
           <Card>
             <CardContent className="p-6">
@@ -391,7 +418,7 @@ const DestinationDetail = () => {
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-500">Current Conditions</p>
                     <div className="flex justify-center my-2">
-                      {getWeatherIcon(weather.current.condition)}
+                      {getWeatherIcon(weather.current.condition, weather.current.icon)}
                     </div>
                     <p className="text-2xl font-bold">{weather.current.temperature}°C</p>
                     <p className="text-sm text-gray-600">{weather.current.condition}</p>
@@ -399,6 +426,12 @@ const DestinationDetail = () => {
                       <div>Humidity: {weather.current.humidity}%</div>
                       <div>Wind: {weather.current.wind} km/h</div>
                     </div>
+                    
+                    {weather.location && (
+                      <p className="mt-2 text-xs text-gray-500">
+                        Data for: {weather.location.name}, {weather.location.country}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="mt-4 grid grid-cols-3 gap-2 text-center">

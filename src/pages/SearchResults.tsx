@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { searchDestinations } from "@/api/destinationService";
@@ -31,7 +32,7 @@ const SearchResults = () => {
         
         // Show a toast if we're showing a generated result (not from predefined list)
         if (searchResults.length === 1 && searchResults[0].id.startsWith('search-')) {
-          toast.info("Generated results for your search query. In a production app, this would use real data from an API.");
+          toast.info("Generated results for your search query with real-time weather data.");
         }
       } catch (error) {
         console.error("Error searching destinations:", error);

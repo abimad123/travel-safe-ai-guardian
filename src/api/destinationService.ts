@@ -1,5 +1,6 @@
 // This file provides functions to fetch destination data
 import { Destination } from "@/components/dashboard/DestinationCard";
+import { supabase } from "@/integrations/supabase/client";
 
 // Mock data for sample destinations
 const sampleDestinations: Destination[] = [
@@ -172,68 +173,86 @@ export const searchDestinations = async (query: string): Promise<Destination[]> 
   return [generatedDestination];
 };
 
-// Weather condition options with weighted probabilities
-const weatherConditions = [
-  { condition: "Sunny", weight: 30 },
-  { condition: "Partly Cloudy", weight: 25 },
-  { condition: "Cloudy", weight: 20 },
-  { condition: "Rainy", weight: 15 },
-  { condition: "Stormy", weight: 10 }
-];
-
-// Function to get weighted random weather condition
-const getWeightedRandomWeather = () => {
-  const totalWeight = weatherConditions.reduce((sum, item) => sum + item.weight, 0);
-  let random = Math.random() * totalWeight;
-  
-  for (const item of weatherConditions) {
-    if (random < item.weight) {
-      return item.condition;
-    }
-    random -= item.weight;
-  }
-  
-  return weatherConditions[0].condition; // Default fallback
-};
-
-// Realistic seasonal temperature ranges
-const getSeasonalTemperature = (locationName: string) => {
-  // Get current month (1-12)
-  const month = new Date().getMonth() + 1;
-  
-  // Simple hash function to get consistent but varied temps for different cities
-  let hash = 0;
-  for (let i = 0; i < locationName.length; i++) {
-    hash = ((hash << 5) - hash) + locationName.charCodeAt(i);
-    hash = hash & hash;
-  }
-  const locationVariance = Math.abs(hash % 10) - 5; // -5 to +4
-  
-  // Northern hemisphere
-  if (month >= 3 && month <= 5) { // Spring
-    return 15 + locationVariance + Math.round(Math.random() * 6 - 3);
-  } else if (month >= 6 && month <= 8) { // Summer
-    return 25 + locationVariance + Math.round(Math.random() * 6 - 3);
-  } else if (month >= 9 && month <= 11) { // Fall
-    return 15 + locationVariance + Math.round(Math.random() * 6 - 3);
-  } else { // Winter
-    return 5 + locationVariance + Math.round(Math.random() * 6 - 3);
-  }
-};
-
 // Function to fetch weather data for a location
 export const fetchWeatherData = async (location: string) => {
-  // Simulating API call delay
-  await new Promise((resolve) => setTimeout(resolve, 600 + Math.random() * 500));
-  
-  // In a real app, this would call an actual weather API
-  const currentTemperature = getSeasonalTemperature(location);
-  const randomWeather = getWeightedRandomWeather();
-  
+  try {
+    // Fetch real weather data from our Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke('weather', {
+      body: { location },
+    });
+
+    if (error) {
+      console.error("Error fetching weather data:", error);
+      // Fall back to mock data if the API call fails
+      return generateMockWeatherData(location);
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error in weather API call:", error);
+    // Fall back to mock data if the API call fails
+    return generateMockWeatherData(location);
+  }
+};
+
+// Function to generate mock weather data (as a fallback)
+const generateMockWeatherData = (location: string) => {
+  // Weather condition options with weighted probabilities
+  const weatherConditions = [
+    { condition: "Sunny", weight: 30 },
+    { condition: "Partly Cloudy", weight: 25 },
+    { condition: "Cloudy", weight: 20 },
+    { condition: "Rainy", weight: 15 },
+    { condition: "Stormy", weight: 10 }
+  ];
+
+  // Function to get weighted random weather condition
+  const getWeightedRandomWeather = () => {
+    const totalWeight = weatherConditions.reduce((sum, item) => sum + item.weight, 0);
+    let random = Math.random() * totalWeight;
+    
+    for (const item of weatherConditions) {
+      if (random < item.weight) {
+        return item.condition;
+      }
+      random -= item.weight;
+    }
+    
+    return weatherConditions[0].condition; // Default fallback
+  };
+
+  // Realistic seasonal temperature ranges
+  const getSeasonalTemperature = (locationName: string) => {
+    // Get current month (1-12)
+    const month = new Date().getMonth() + 1;
+    
+    // Simple hash function to get consistent but varied temps for different cities
+    let hash = 0;
+    for (let i = 0; i < locationName.length; i++) {
+      hash = ((hash << 5) - hash) + locationName.charCodeAt(i);
+      hash = hash & hash;
+    }
+    const locationVariance = Math.abs(hash % 10) - 5; // -5 to +4
+    
+    // Northern hemisphere
+    if (month >= 3 && month <= 5) { // Spring
+      return 15 + locationVariance + Math.round(Math.random() * 6 - 3);
+    } else if (month >= 6 && month <= 8) { // Summer
+      return 25 + locationVariance + Math.round(Math.random() * 6 - 3);
+    } else if (month >= 9 && month <= 11) { // Fall
+      return 15 + locationVariance + Math.round(Math.random() * 6 - 3);
+    } else { // Winter
+      return 5 + locationVariance + Math.round(Math.random() * 6 - 3);
+    }
+  };
+
   // Get day names for the next 3 days
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const today = new Date().getDay();
   const forecast = [];
+  
+  const currentTemperature = getSeasonalTemperature(location);
+  const randomWeather = getWeightedRandomWeather();
   
   for (let i = 1; i <= 3; i++) {
     const dayIndex = (today + i) % 7;
