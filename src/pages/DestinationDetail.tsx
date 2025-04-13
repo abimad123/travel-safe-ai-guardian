@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { ArrowLeft, MapPin, Shield, AlertTriangle, Info, Plus } from "lucide-react";
@@ -46,6 +47,10 @@ interface WeatherData {
     day: string;
     temp: number;
   }[];
+  location?: {
+    name: string;
+    country: string;
+  };
 }
 
 const DestinationDetail = () => {
@@ -156,8 +161,9 @@ const DestinationDetail = () => {
           src={`https://openweathermap.org/img/wn/${iconCode}@2x.png`} 
           alt={condition}
           className="w-16 h-16"
-        );
-      }
+        />
+      );
+    }
     
     switch (condition.toLowerCase()) {
       case "clear":
