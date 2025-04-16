@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { searchDestinations } from "@/api/destinationService";
 import { Destination } from "@/components/dashboard/DestinationCard";
 import DestinationCard from "@/components/dashboard/DestinationCard";
+import SafetyQueryResponse from "@/components/search/SafetyQueryResponse";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Search } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -17,6 +18,9 @@ const SearchResults = () => {
   const [searchQuery, setSearchQuery] = useState(query);
   const [results, setResults] = useState<Destination[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Detect if the query is asking about safety
+  const isSafetyQuery = /\b(safe|safety|danger|dangerous|risk|crime|secure|should i go|should i visit)\b/i.test(query);
 
   useEffect(() => {
     const search = async () => {
@@ -34,6 +38,11 @@ const SearchResults = () => {
         if (searchResults.length === 1 && searchResults[0].id.startsWith('search-')) {
           toast.info("Generated results for your search query with real-time weather data.");
         }
+        
+        // Show specific toast for safety queries
+        if (isSafetyQuery && searchResults.length > 0) {
+          toast.info("Showing safety information for your query.");
+        }
       } catch (error) {
         console.error("Error searching destinations:", error);
         toast.error("Failed to load search results");
@@ -44,7 +53,7 @@ const SearchResults = () => {
 
     search();
     setSearchQuery(query);
-  }, [query]);
+  }, [query, isSafetyQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +89,7 @@ const SearchResults = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <Input
             type="text"
-            placeholder="Try another destination..."
+            placeholder="Try another destination or ask about safety..."
             className="pl-10 py-2"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -98,15 +107,26 @@ const SearchResults = () => {
           <p className="mt-2 text-gray-600">Searching destinations...</p>
         </div>
       ) : results.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {results.map((destination) => (
-            <div key={destination.id} onClick={() => handleCardClick(destination)} className="cursor-pointer">
-              <DestinationCard 
-                destination={destination} 
-                searchQuery={query}
-              />
-            </div>
+        <div>
+          {/* Display safety response at the top for safety queries */}
+          {isSafetyQuery && results.map(destination => (
+            <SafetyQueryResponse 
+              key={`safety-${destination.id}`} 
+              destination={destination} 
+              query={query} 
+            />
           ))}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {results.map((destination) => (
+              <div key={destination.id} onClick={() => handleCardClick(destination)} className="cursor-pointer">
+                <DestinationCard 
+                  destination={destination} 
+                  searchQuery={query}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="text-center py-12">
