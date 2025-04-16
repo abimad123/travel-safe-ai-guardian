@@ -4,6 +4,7 @@ import { searchDestinations } from "@/api/destinationService";
 import { Destination } from "@/components/dashboard/DestinationCard";
 import DestinationCard from "@/components/dashboard/DestinationCard";
 import SafetyQueryResponse from "@/components/search/SafetyQueryResponse";
+import DestinationNews from "@/components/search/DestinationNews";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Search, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -142,6 +143,45 @@ const SearchResults = () => {
     }
   };
 
+  // Extract the primary location name from the query or results
+  const getPrimaryLocationName = (): string => {
+    if (!query) return '';
+    
+    // If we have results, use the first result's name (first part)
+    if (results.length > 0) {
+      return results[0].name.split(',')[0].trim();
+    }
+    
+    // Otherwise extract from the query
+    // First, check if the query contains "is" or "in" as in "Is Tokyo safe?"
+    const isMatch = query.match(/\b(is|in|about)\s+([A-Z][a-z]+)\b/i);
+    if (isMatch && isMatch[2]) {
+      return isMatch[2];
+    }
+    
+    // Look for any capitalized words that might be location names
+    const words = query.split(/\s+/);
+    const locationWords = words.filter(word => 
+      word.length >= 3 && /^[A-Z][a-z]+$/.test(word)
+    );
+    
+    if (locationWords.length > 0) {
+      return locationWords[0];
+    }
+    
+    // If we couldn't find a proper location format, check for known locations
+    const knownLocations = ['tokyo', 'paris', 'london', 'rome', 'bangkok', 'bali', 'sydney', 
+                           'york', 'mexico', 'india', 'japan', 'china', 'thailand', 'europe'];
+    
+    for (const location of knownLocations) {
+      if (query.toLowerCase().includes(location)) {
+        return location.charAt(0).toUpperCase() + location.slice(1);
+      }
+    }
+    
+    return '';
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
@@ -256,6 +296,13 @@ const SearchResults = () => {
               query={query} 
             />
           ))}
+          
+          {/* Display latest news about the destination */}
+          {!isSafetyQuery && (
+            <div className="mb-6">
+              <DestinationNews locationName={getPrimaryLocationName()} />
+            </div>
+          )}
           
           {/* Quick safety examples if user is viewing safety results */}
           {isSafetyQuery && (
