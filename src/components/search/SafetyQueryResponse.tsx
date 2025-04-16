@@ -13,10 +13,6 @@ const SafetyQueryResponse: React.FC<SafetyQueryResponseProps> = ({ destination, 
   // Detect if query contains safety-related keywords
   const isSafetyQuery = /\b(safe|safety|danger|dangerous|risk|crime|secure)\b/i.test(query);
   
-  // Determine location name from query (simplified method)
-  const locationRegex = new RegExp(`\\b(${destination.name.split(',')[0]})\\b`, 'i');
-  const mentionsLocation = locationRegex.test(query);
-  
   // Check if it's asking about whether to go/visit
   const isVisitQuery = /\b(go|visit|travel|trip to)\b/i.test(query);
   
@@ -24,10 +20,11 @@ const SafetyQueryResponse: React.FC<SafetyQueryResponseProps> = ({ destination, 
     return null;
   }
 
+  // Extract just the location name from the destination
+  const locationName = destination.name.split(',')[0];
+  
   // Generate appropriate response based on safety score
   const getSafetyResponse = () => {
-    const locationName = destination.name.split(',')[0];
-    
     if (destination.safetyScore >= 8.5) {
       return (
         <div className="flex items-start space-x-3">
@@ -89,8 +86,6 @@ const SafetyQueryResponse: React.FC<SafetyQueryResponseProps> = ({ destination, 
   };
 
   const getVisitRecommendation = () => {
-    const locationName = destination.name.split(',')[0];
-    
     if (destination.safetyScore >= 8) {
       return (
         <p className="mt-2 text-gray-700">
@@ -129,7 +124,7 @@ const SafetyQueryResponse: React.FC<SafetyQueryResponseProps> = ({ destination, 
         
         <div className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
           <div className="text-sm text-gray-500 mb-2">
-            You asked: "{query}"
+            You asked about the safety of <span className="font-medium">{locationName}</span>
           </div>
           
           {getSafetyResponse()}

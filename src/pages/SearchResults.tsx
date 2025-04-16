@@ -20,30 +20,64 @@ const SearchResults = () => {
   const [safetyQuery, setSafetyQuery] = useState("");
   const [results, setResults] = useState<Destination[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInvalidQuery, setIsInvalidQuery] = useState(false);
   
   // Detect if the query is asking about safety
   const isSafetyQuery = /\b(safe|safety|danger|dangerous|risk|crime|secure|should i go|should i visit)\b/i.test(query);
+  
+  // Basic validation for reasonable location names (at least 3 chars, no just gibberish)
+  const isReasonableLocationQuery = (q: string): boolean => {
+    // Must be at least 3 characters long
+    if (q.length < 3) return false;
+    
+    // Should have a reasonable ratio of letters to other characters
+    const letterCount = (q.match(/[a-zA-Z]/g) || []).length;
+    if (letterCount < q.length * 0.6) return false;
+    
+    // Shouldn't have too many repeating characters (like "aaaaaaaa")
+    const repeatedChars = q.match(/(.)\1{3,}/g); // 4+ repeated chars
+    if (repeatedChars) return false;
+    
+    return true;
+  };
 
   useEffect(() => {
     const search = async () => {
       setIsLoading(true);
+      setIsInvalidQuery(false);
+      
       try {
         if (!query) {
           setResults([]);
           return;
         }
         
-        const searchResults = await searchDestinations(query);
-        setResults(searchResults);
-        
-        // Show a toast if we're showing a generated result (not from predefined list)
-        if (searchResults.length === 1 && searchResults[0].id.startsWith('search-')) {
-          toast.info("Generated results for your search query with real-time weather data.");
+        // For safety queries, we need to validate that it contains a real location name
+        if (isSafetyQuery && !isReasonableLocationQuery(query)) {
+          setIsInvalidQuery(true);
+          setResults([]);
+          setIsLoading(false);
+          return;
         }
         
-        // Show specific toast for safety queries
-        if (isSafetyQuery && searchResults.length > 0) {
-          toast.info("Showing safety information for your query.");
+        const searchResults = await searchDestinations(query);
+        
+        // If no results and it seems like an invalid location query
+        if (searchResults.length === 0 && !isReasonableLocationQuery(query)) {
+          setIsInvalidQuery(true);
+          setResults([]);
+        } else {
+          setResults(searchResults);
+          
+          // Show a toast if we're showing a generated result (not from predefined list)
+          if (searchResults.length === 1 && searchResults[0].id.startsWith('search-')) {
+            toast.info("Generated results for your search query with real-time weather data.");
+          }
+          
+          // Show specific toast for safety queries
+          if (isSafetyQuery && searchResults.length > 0) {
+            toast.info("Showing safety information for your query.");
+          }
         }
       } catch (error) {
         console.error("Error searching destinations:", error);
@@ -153,6 +187,30 @@ const SearchResults = () => {
         <div className="text-center py-12">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
           <p className="mt-2 text-gray-600">Searching destinations...</p>
+        </div>
+      ) : isInvalidQuery ? (
+        <div className="text-center py-8">
+          <Card className="max-w-2xl mx-auto border-l-4 border-yellow-400 bg-yellow-50">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-medium text-yellow-800 mb-2">Invalid search query</h3>
+              <p className="text-gray-700 mb-4">
+                Please provide a valid location name for your safety query. For example:
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {["Is Paris safe?", "Tokyo safety", "Should I visit Rome?", "Is Bangkok dangerous?"].map((example, i) => (
+                  <Button 
+                    key={i} 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-sm" 
+                    onClick={() => setSearchParams({ q: example })}
+                  >
+                    {example}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       ) : results.length > 0 ? (
         <div>

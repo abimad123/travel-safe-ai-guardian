@@ -42,6 +42,16 @@ const SearchBar = () => {
       return;
     }
     
+    // Validate that there's likely a location name in the query
+    const containsLocationName = safetyQuery.split(/\s+/).some(word => 
+      word.length >= 3 && /^[A-Z][a-z]+$/.test(word)
+    );
+    
+    if (!containsLocationName && !/(paris|tokyo|london|rome|bangkok|bali|sydney|new york|mexico)/i.test(safetyQuery)) {
+      toast.error("Please include a specific location in your safety question");
+      return;
+    }
+    
     setIsSearching(true);
     
     try {
