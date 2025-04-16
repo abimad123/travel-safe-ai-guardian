@@ -13,11 +13,31 @@ const SearchBar = () => {
   const [isSearching, setIsSearching] = useState(false);
   const navigate = useNavigate();
 
+  // Validates if a query appears to be a valid location name
+  const isValidLocationQuery = (query: string): boolean => {
+    if (!query || query.trim().length < 3) return false;
+    
+    // Should have a reasonable ratio of letters to other characters
+    const letterCount = (query.match(/[a-zA-Z]/g) || []).length;
+    if (letterCount < query.length * 0.6) return false;
+    
+    // Shouldn't have too many repeating characters (like "aaaaaaaa")
+    const repeatedChars = query.match(/(.)\1{3,}/g); // 4+ repeated chars
+    if (repeatedChars) return false;
+    
+    return true;
+  };
+
   const handleDestinationSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!destinationQuery.trim()) {
       toast.error("Please enter a destination to search");
+      return;
+    }
+    
+    if (!isValidLocationQuery(destinationQuery)) {
+      toast.error("Please enter a valid destination name");
       return;
     }
     
@@ -42,13 +62,22 @@ const SearchBar = () => {
       return;
     }
     
-    // Validate that there's likely a location name in the query
-    const containsLocationName = safetyQuery.split(/\s+/).some(word => 
+    // Extract potential location names from the query
+    const words = safetyQuery.split(/\s+/);
+    const potentialLocationNames = words.filter(word => 
       word.length >= 3 && /^[A-Z][a-z]+$/.test(word)
     );
     
-    if (!containsLocationName && !/(paris|tokyo|london|rome|bangkok|bali|sydney|new york|mexico)/i.test(safetyQuery)) {
+    // Check for common city names as fallback
+    const containsKnownLocation = /(paris|tokyo|london|rome|bangkok|bali|sydney|new york|mexico|india|bangkok|japan|china|thailand|europe)/i.test(safetyQuery);
+    
+    if (potentialLocationNames.length === 0 && !containsKnownLocation) {
       toast.error("Please include a specific location in your safety question");
+      return;
+    }
+    
+    if (!isValidLocationQuery(potentialLocationNames[0]) && !containsKnownLocation) {
+      toast.error("Please enter a valid location name");
       return;
     }
     

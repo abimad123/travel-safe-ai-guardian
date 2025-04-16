@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { searchDestinations } from "@/api/destinationService";
@@ -25,7 +24,7 @@ const SearchResults = () => {
   // Detect if the query is asking about safety
   const isSafetyQuery = /\b(safe|safety|danger|dangerous|risk|crime|secure|should i go|should i visit)\b/i.test(query);
   
-  // Basic validation for reasonable location names (at least 3 chars, no just gibberish)
+  // Basic validation for reasonable location names
   const isReasonableLocationQuery = (q: string): boolean => {
     // Must be at least 3 characters long
     if (q.length < 3) return false;
@@ -52,8 +51,8 @@ const SearchResults = () => {
           return;
         }
         
-        // For safety queries, we need to validate that it contains a real location name
-        if (isSafetyQuery && !isReasonableLocationQuery(query)) {
+        // For any queries, we need to validate that it contains a real location name
+        if (!isReasonableLocationQuery(query)) {
           setIsInvalidQuery(true);
           setResults([]);
           setIsLoading(false);
@@ -63,14 +62,14 @@ const SearchResults = () => {
         const searchResults = await searchDestinations(query);
         
         // If no results and it seems like an invalid location query
-        if (searchResults.length === 0 && !isReasonableLocationQuery(query)) {
+        if (searchResults.length === 0) {
           setIsInvalidQuery(true);
           setResults([]);
         } else {
           setResults(searchResults);
           
           // Show a toast if we're showing a generated result (not from predefined list)
-          if (searchResults.length === 1 && searchResults[0].id.startsWith('search-')) {
+          if (searchResults.length === 1 && searchResults[0].id.startsWith('search-') && !isSafetyQuery) {
             toast.info("Generated results for your search query with real-time weather data.");
           }
           
@@ -94,12 +93,31 @@ const SearchResults = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
+    
+    if (!isReasonableLocationQuery(searchQuery)) {
+      toast.error("Please enter a valid destination name");
+      return;
+    }
+    
     setSearchParams({ q: searchQuery });
   };
 
   const handleSafetySearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!safetyQuery.trim()) return;
+    
+    // Validate location query
+    const words = safetyQuery.split(/\s+/);
+    const potentialLocationNames = words.filter(word => 
+      word.length >= 3 && /^[A-Z][a-z]+$/.test(word)
+    );
+    
+    const containsKnownLocation = /(paris|tokyo|london|rome|bangkok|bali|sydney|new york|mexico|india|bangkok|japan|china|thailand|europe)/i.test(safetyQuery);
+    
+    if (potentialLocationNames.length === 0 && !containsKnownLocation) {
+      toast.error("Please include a specific location in your safety question");
+      return;
+    }
     
     // Add safety keywords if they're not already in the query
     let enhancedQuery = safetyQuery;
@@ -112,12 +130,15 @@ const SearchResults = () => {
   };
 
   const handleCardClick = (destination: Destination) => {
-    // When clicking on a search-generated destination, pass the search query
-    if (destination.id.startsWith('search-')) {
-      navigate(`/destination/${destination.id}?q=${encodeURIComponent(query)}`);
-    } else {
-      // For regular destinations, keep the normal behavior
-      navigate(`/destination/${destination.id}`);
+    // Only allow clicking through to destination details for non-safety queries
+    if (!isSafetyQuery) {
+      // When clicking on a search-generated destination, pass the search query
+      if (destination.id.startsWith('search-')) {
+        navigate(`/destination/${destination.id}?q=${encodeURIComponent(query)}`);
+      } else {
+        // For regular destinations, keep the normal behavior
+        navigate(`/destination/${destination.id}`);
+      }
     }
   };
 
@@ -194,20 +215,33 @@ const SearchResults = () => {
             <CardContent className="p-6">
               <h3 className="text-lg font-medium text-yellow-800 mb-2">Invalid search query</h3>
               <p className="text-gray-700 mb-4">
-                Please provide a valid location name for your safety query. For example:
+                Please provide a valid location name for your {isSafetyQuery ? "safety" : ""} query. For example:
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
-                {["Is Paris safe?", "Tokyo safety", "Should I visit Rome?", "Is Bangkok dangerous?"].map((example, i) => (
-                  <Button 
-                    key={i} 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-sm" 
-                    onClick={() => setSearchParams({ q: example })}
-                  >
-                    {example}
-                  </Button>
-                ))}
+                {isSafetyQuery ? 
+                  ["Is Paris safe?", "Tokyo safety", "Should I visit Rome?", "Is Bangkok dangerous?"].map((example, i) => (
+                    <Button 
+                      key={i} 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-sm" 
+                      onClick={() => setSearchParams({ q: example })}
+                    >
+                      {example}
+                    </Button>
+                  )) :
+                  ["Paris", "Tokyo", "New York", "Barcelona", "Sydney"].map((example, i) => (
+                    <Button 
+                      key={i} 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-sm" 
+                      onClick={() => setSearchParams({ q: example })}
+                    >
+                      {example}
+                    </Button>
+                  ))
+                }
               </div>
             </CardContent>
           </Card>
@@ -246,16 +280,19 @@ const SearchResults = () => {
             </Card>
           )}
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {results.map((destination) => (
-              <div key={destination.id} onClick={() => handleCardClick(destination)} className="cursor-pointer">
-                <DestinationCard 
-                  destination={destination} 
-                  searchQuery={query}
-                />
-              </div>
-            ))}
-          </div>
+          {/* Only show destination cards for non-safety queries */}
+          {!isSafetyQuery && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {results.map((destination) => (
+                <div key={destination.id} onClick={() => handleCardClick(destination)} className="cursor-pointer">
+                  <DestinationCard 
+                    destination={destination} 
+                    searchQuery={query}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-center py-12">
