@@ -118,16 +118,28 @@ const SafetyQueryResponse: React.FC<SafetyQueryResponseProps> = ({ destination, 
     }
   };
 
+  // Create a more chatbot-like appearance for the response
   return (
-    <Card className="mb-6 border-l-4 border-blue-400">
+    <Card className="mb-6 border-l-4 border-blue-400 bg-blue-50">
       <CardContent className="p-5">
-        <h3 className="text-lg font-semibold mb-3">Safety Information</h3>
-        {getSafetyResponse()}
-        {isVisitQuery && getVisitRecommendation()}
-        <p className="mt-3 text-sm text-gray-500">
-          Safety scores are based on combined factors including crime rates, health risks, and environmental conditions. 
-          Always check current travel advisories before planning your trip.
-        </p>
+        <div className="flex items-center mb-3">
+          <Shield className="h-5 w-5 text-blue-500 mr-2" />
+          <h3 className="text-lg font-semibold text-blue-900">Safety Advisor</h3>
+        </div>
+        
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
+          <div className="text-sm text-gray-500 mb-2">
+            You asked: "{query}"
+          </div>
+          
+          {getSafetyResponse()}
+          {isVisitQuery && getVisitRecommendation()}
+          
+          <div className="mt-3 text-sm text-gray-500 flex items-center">
+            <Info className="h-3 w-3 mr-1" />
+            Safety scores are based on combined factors including crime rates, health risks, and environmental conditions.
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

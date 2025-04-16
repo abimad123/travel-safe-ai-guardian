@@ -6,16 +6,18 @@ import { Destination } from "@/components/dashboard/DestinationCard";
 import DestinationCard from "@/components/dashboard/DestinationCard";
 import SafetyQueryResponse from "@/components/search/SafetyQueryResponse";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, MapPin, Search, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 
 const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get("q") || "";
   const [searchQuery, setSearchQuery] = useState(query);
+  const [safetyQuery, setSafetyQuery] = useState("");
   const [results, setResults] = useState<Destination[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -61,6 +63,20 @@ const SearchResults = () => {
     setSearchParams({ q: searchQuery });
   };
 
+  const handleSafetySearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!safetyQuery.trim()) return;
+    
+    // Add safety keywords if they're not already in the query
+    let enhancedQuery = safetyQuery;
+    if (!/(safe|safety|danger|dangerous|should)/i.test(safetyQuery)) {
+      enhancedQuery = `Is ${safetyQuery} safe to visit?`;
+    }
+    
+    setSearchParams({ q: enhancedQuery });
+    setSafetyQuery("");
+  };
+
   const handleCardClick = (destination: Destination) => {
     // When clicking on a search-generated destination, pass the search query
     if (destination.id.startsWith('search-')) {
@@ -83,23 +99,55 @@ const SearchResults = () => {
         <h1 className="text-3xl font-bold">Search Results for "{query}"</h1>
       </div>
 
-      {/* New inline search bar */}
-      <form onSubmit={handleSearch} className="flex gap-2 max-w-2xl mb-8">
-        <div className="relative flex-grow">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <Input
-            type="text"
-            placeholder="Try another destination or ask about safety..."
-            className="pl-10 py-2"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            disabled={isLoading}
-          />
-        </div>
-        <Button type="submit" disabled={isLoading}>
-          Search
-        </Button>
-      </form>
+      <div className="grid md:grid-cols-2 gap-4 mb-8">
+        {/* Destination search bar */}
+        <form onSubmit={handleSearch} className="flex flex-col">
+          <label className="mb-2 font-medium flex items-center">
+            <MapPin className="mr-1 h-4 w-4" />
+            Find a destination
+          </label>
+          <div className="flex gap-2">
+            <div className="relative flex-grow">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Input
+                type="text"
+                placeholder="Search any destination..."
+                className="pl-10 py-2"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <Button type="submit" disabled={isLoading}>
+              Search
+            </Button>
+          </div>
+        </form>
+
+        {/* Safety chatbot search bar */}
+        <form onSubmit={handleSafetySearch} className="flex flex-col">
+          <label className="mb-2 font-medium flex items-center">
+            <Shield className="mr-1 h-4 w-4" />
+            Ask about safety
+          </label>
+          <div className="flex gap-2">
+            <div className="relative flex-grow">
+              <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" size={20} />
+              <Input
+                type="text"
+                placeholder="Is Tokyo safe? Should I visit Paris?"
+                className="pl-10 py-2 border-blue-200"
+                value={safetyQuery}
+                onChange={(e) => setSafetyQuery(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <Button type="submit" disabled={isLoading} className="bg-blue-500 hover:bg-blue-600">
+              Ask
+            </Button>
+          </div>
+        </form>
+      </div>
 
       {isLoading ? (
         <div className="text-center py-12">
@@ -116,6 +164,29 @@ const SearchResults = () => {
               query={query} 
             />
           ))}
+          
+          {/* Quick safety examples if user is viewing safety results */}
+          {isSafetyQuery && (
+            <Card className="mb-6">
+              <CardContent className="p-4">
+                <h3 className="text-sm font-medium mb-2">Try other safety questions:</h3>
+                <div className="flex flex-wrap gap-2">
+                  {["Is Paris safe at night?", "Should I visit Tokyo?", "Barcelona crime rate", "London safety tips"].map((example, index) => (
+                    <Button 
+                      key={index} 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs"
+                      onClick={() => setSearchParams({ q: example })}
+                    >
+                      <Shield className="mr-1 h-3 w-3" />
+                      {example}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {results.map((destination) => (
