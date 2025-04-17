@@ -126,3 +126,4 @@ const DestinationNews: React.FC<DestinationNewsProps> = ({ locationName }) => {
 };
 
 export default DestinationNews;
+
