@@ -1,9 +1,11 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Newspaper, ExternalLink } from "lucide-react";
+import { Newspaper, ExternalLink, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface NewsArticle {
   title: string;
@@ -21,32 +23,40 @@ interface DestinationNewsProps {
 const DestinationNews: React.FC<DestinationNewsProps> = ({ locationName }) => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchNews = async () => {
       if (!locationName) return;
       
       setLoading(true);
+      setError(null);
       
       try {
+        console.log(`Fetching news for location: ${locationName}`);
+        
         const { data, error } = await supabase.functions.invoke('destination-news', {
           body: { locationName }
         });
         
         if (error) {
           console.error('Error fetching news:', error);
+          setError('Could not load news articles');
           toast.error('Failed to load news for this destination');
           setArticles([]);
           return;
         }
         
         if (data.articles && Array.isArray(data.articles)) {
+          console.log(`Received ${data.articles.length} news articles`);
           setArticles(data.articles);
         } else {
+          console.log('No articles found or invalid response format');
           setArticles([]);
         }
       } catch (error) {
         console.error('Error fetching news:', error);
+        setError('Could not load news articles');
         toast.error('Failed to load news for this destination');
         setArticles([]);
       } finally {
@@ -67,6 +77,33 @@ const DestinationNews: React.FC<DestinationNewsProps> = ({ locationName }) => {
           </div>
           <div className="flex justify-center py-6">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em]" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center mb-3">
+            <Newspaper className="h-5 w-5 mr-2 text-gray-500" />
+            <h3 className="text-lg font-semibold">Latest News</h3>
+          </div>
+          <Alert variant="destructive" className="mb-2">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+          <div className="text-center">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.reload()}
+              className="mt-2"
+            >
+              Try Again
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -126,4 +163,3 @@ const DestinationNews: React.FC<DestinationNewsProps> = ({ locationName }) => {
 };
 
 export default DestinationNews;
-
