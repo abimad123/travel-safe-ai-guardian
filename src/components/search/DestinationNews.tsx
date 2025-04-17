@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Newspaper, ExternalLink, AlertCircle } from "lucide-react";
+import { Newspaper, ExternalLink, AlertCircle, RefreshCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,45 +25,49 @@ const DestinationNews: React.FC<DestinationNewsProps> = ({ locationName }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchNews = async () => {
-      if (!locationName) return;
+  const fetchNews = async () => {
+    if (!locationName) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log(`Fetching news for location: ${locationName}`);
       
-      setLoading(true);
-      setError(null);
+      const { data, error } = await supabase.functions.invoke('destination-news', {
+        body: { locationName }
+      });
       
-      try {
-        console.log(`Fetching news for location: ${locationName}`);
-        
-        const { data, error } = await supabase.functions.invoke('destination-news', {
-          body: { locationName }
-        });
-        
-        if (error) {
-          console.error('Error fetching news:', error);
-          setError('Could not load news articles');
-          toast.error('Failed to load news for this destination');
-          setArticles([]);
-          return;
-        }
-        
-        if (data.articles && Array.isArray(data.articles)) {
-          console.log(`Received ${data.articles.length} news articles`);
-          setArticles(data.articles);
-        } else {
-          console.log('No articles found or invalid response format');
-          setArticles([]);
-        }
-      } catch (error) {
+      if (error) {
         console.error('Error fetching news:', error);
         setError('Could not load news articles');
         toast.error('Failed to load news for this destination');
         setArticles([]);
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
+      
+      if (data.articles && Array.isArray(data.articles)) {
+        console.log(`Received ${data.articles.length} news articles`);
+        setArticles(data.articles);
+        if (data.articles.length === 0) {
+          setError('No recent news found for this destination');
+        }
+      } else {
+        console.log('No articles found or invalid response format');
+        setError('No news articles available');
+        setArticles([]);
+      }
+    } catch (error) {
+      console.error('Error fetching news:', error);
+      setError('Could not load news articles');
+      toast.error('Failed to load news for this destination');
+      setArticles([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchNews();
   }, [locationName]);
 
@@ -99,10 +103,10 @@ const DestinationNews: React.FC<DestinationNewsProps> = ({ locationName }) => {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => window.location.reload()}
+              onClick={fetchNews}
               className="mt-2"
             >
-              Try Again
+              <RefreshCcw className="h-4 w-4 mr-2" /> Try Again
             </Button>
           </div>
         </CardContent>

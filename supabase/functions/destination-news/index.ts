@@ -27,6 +27,8 @@ serve(async (req) => {
       throw new Error('NEWS_API_KEY environment variable not set');
     }
 
+    console.log(`Fetching news for location: ${locationName}`);
+
     // Get current date and date from 30 days ago for news filtering
     const today = new Date();
     const thirtyDaysAgo = new Date();
@@ -47,6 +49,7 @@ serve(async (req) => {
     }
     
     const newsData = await newsResponse.json();
+    console.log(`Successfully retrieved ${newsData.articles?.length || 0} articles for ${locationName}`);
     
     // Format and filter the news data
     const articles = newsData.articles

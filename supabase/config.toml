@@ -1,35 +1,5 @@
 
 project_id = "mtprpxmgjincpujogfaw"
 
-[api]
-enabled = true
-port = 54321
-schemas = ["public", "storage"]
-
-[db]
-port = 54322
-
-[realtime]
-enabled = true
-
-[studio]
-port = 54323
-
-[inbucket]
-port = 54324
-
-[auth]
-enabled = true
-site_url = "http://localhost:3000"
-
-[storage]
-enabled = true
-
-[[functions]]
-name = "weather"
+[functions.destination-news]
 verify_jwt = false
-
-[[functions]]
-name = "destination-news"
-verify_jwt = false
-
