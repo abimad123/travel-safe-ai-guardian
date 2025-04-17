@@ -176,6 +176,8 @@ export const searchDestinations = async (query: string): Promise<Destination[]> 
 // Function to fetch weather data for a location
 export const fetchWeatherData = async (location: string) => {
   try {
+    console.log(`Fetching weather data for location: ${location}`);
+    
     // Fetch real weather data from our Supabase Edge Function
     const { data, error } = await supabase.functions.invoke('weather', {
       body: { location },
@@ -187,6 +189,7 @@ export const fetchWeatherData = async (location: string) => {
       return generateMockWeatherData(location);
     }
 
+    console.log("Weather data received:", data);
     return data;
   } catch (error) {
     console.error("Error in weather API call:", error);

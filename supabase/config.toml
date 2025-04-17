@@ -3,3 +3,6 @@ project_id = "mtprpxmgjincpujogfaw"
 
 [functions.destination-news]
 verify_jwt = false
+
+[functions.weather]
+verify_jwt = false
